@@ -14,6 +14,7 @@ class SyncAction:
     doc_id: str
     chunk_count: int = 0
     chunks: list[Chunk] = field(default_factory=list)
+    removed_chunk_ids: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -32,7 +33,7 @@ class MemoryDestination:
 
     def __init__(self) -> None:
         self.indexed: dict[str, int] = {}
-        self.vectors: dict[str, list[list[float]]] = {}
+        self.vectors: dict[str, dict[str, list[float]]] = {}
 
     def apply(self, action: SyncAction, embeddings: list[list[float]], dry_run: bool = False) -> None:
         if dry_run:
@@ -41,5 +42,11 @@ class MemoryDestination:
             self.indexed.pop(action.doc_id, None)
             self.vectors.pop(action.doc_id, None)
             return
+        bucket = self.vectors.setdefault(action.doc_id, {})
+        if action.action == "add":
+            bucket.clear()
+        for chunk_id in action.removed_chunk_ids:
+            bucket.pop(chunk_id, None)
+        for chunk, vector in zip(action.chunks, embeddings, strict=False):
+            bucket[chunk.chunk_id] = vector
         self.indexed[action.doc_id] = action.chunk_count
-        self.vectors[action.doc_id] = embeddings

@@ -2,7 +2,7 @@
 
 Incremental synchronization between **source documents** and **vector indexes** — detect changes, re-embed only deltas, and delete stale chunks.
 
-> **Status:** v0.2 — hash embeddings, paragraph chunks, JSONL destination. Real pgvector is next.
+> **Status:** v0.3 — hash embeddings, paragraph chunks, JSONL destination, chunk-level re-embed.
 
 ## Problem
 

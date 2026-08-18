@@ -68,11 +68,23 @@ def execute_sync(
     docs = {d.doc_id: d for d in source.list_documents()}
 
     for action in plan.adds + plan.updates:
-        texts = [c.content for c in action.chunks]
+        old = store.chunks_for(action.doc_id)
+        new_hashes = {chunk.chunk_id: content_hash(chunk.content) for chunk in action.chunks}
+        changed = [chunk for chunk in action.chunks if old.get(chunk.chunk_id) != new_hashes[chunk.chunk_id]]
+        removed = [chunk_id for chunk_id in old if chunk_id not in new_hashes]
+        write_chunks = action.chunks if action.action == "add" else changed
+        texts = [c.content for c in write_chunks]
         vectors = encoder.embed(texts) if texts else []
+        dest_action = SyncAction(
+            action.action,
+            action.doc_id,
+            chunk_count=action.chunk_count,
+            chunks=write_chunks,
+            removed_chunk_ids=removed,
+        )
         report.actions.append(action)
         report.embeddings_written += 0 if dry_run else len(vectors)
-        dest.apply(action, vectors, dry_run=dry_run)
+        dest.apply(dest_action, vectors, dry_run=dry_run)
         if not dry_run:
             store.upsert(
                 DocumentState(
@@ -80,6 +92,10 @@ def execute_sync(
                     content_hash=content_hash(docs[action.doc_id].content),
                     chunk_count=action.chunk_count,
                 )
+            )
+            store.replace_chunks(
+                action.doc_id,
+                [(chunk.chunk_id, content_hash(chunk.content)) for chunk in action.chunks],
             )
 
     for action in plan.deletes:

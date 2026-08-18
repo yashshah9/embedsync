@@ -28,3 +28,21 @@ def test_run_indexes_documents(tmp_path: Path) -> None:
     second = execute_sync(source, store, dest)
     assert second.embeddings_written == 0
     store.close()
+
+
+def test_update_reembeds_changed_chunks_only(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    first = ("alpha " * 80).strip()
+    second = ("beta " * 80).strip()
+    (docs / "note.md").write_text(f"{first}\n\n{second}\n", encoding="utf-8")
+    store = StateStore(str(tmp_path / "state.db"))
+    source = LocalFileSource(docs)
+    dest = MemoryDestination()
+    initial = execute_sync(source, store, dest)
+    assert initial.embeddings_written >= 2
+    (docs / "note.md").write_text(f"{first}\n\n{('gamma ' * 80).strip()}\n", encoding="utf-8")
+    source = LocalFileSource(docs)
+    again = execute_sync(source, store, dest)
+    assert again.embeddings_written == 1
+    store.close()

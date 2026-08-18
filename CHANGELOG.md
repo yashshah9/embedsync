@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2026-08-19
+
+### Added
+- Chunk-level re-embed: unchanged chunks are skipped on document edit
+- SQLite `chunks` table in the state store
+
 ## [0.2.0] - 2026-08-19
 
 ### Added

@@ -19,8 +19,18 @@ class JsonlDestination:
         if dry_run:
             return
         rows = self._load()
-        rows = [r for r in rows if r.get("doc_id") != action.doc_id]
-        if action.action != "delete":
+        if action.action == "delete":
+            rows = [r for r in rows if r.get("doc_id") != action.doc_id]
+        else:
+            if action.action == "add":
+                rows = [r for r in rows if r.get("doc_id") != action.doc_id]
+            else:
+                drop = set(action.removed_chunk_ids) | {c.chunk_id for c in action.chunks}
+                rows = [
+                    r
+                    for r in rows
+                    if not (r.get("doc_id") == action.doc_id and r.get("chunk_id") in drop)
+                ]
             for chunk, vector in zip(action.chunks, embeddings, strict=False):
                 rows.append(
                     {

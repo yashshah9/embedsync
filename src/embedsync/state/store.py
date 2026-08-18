@@ -29,6 +29,15 @@ class StateStore:
             )
             """
         )
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chunks (
+                chunk_id TEXT PRIMARY KEY,
+                doc_id TEXT NOT NULL,
+                content_hash TEXT NOT NULL
+            )
+            """
+        )
         self._conn.commit()
 
     def get(self, doc_id: str) -> DocumentState | None:
@@ -53,7 +62,23 @@ class StateStore:
         self._conn.commit()
 
     def delete(self, doc_id: str) -> None:
+        self._conn.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
         self._conn.execute("DELETE FROM documents WHERE doc_id = ?", (doc_id,))
+        self._conn.commit()
+
+    def chunks_for(self, doc_id: str) -> dict[str, str]:
+        rows = self._conn.execute(
+            "SELECT chunk_id, content_hash FROM chunks WHERE doc_id = ?",
+            (doc_id,),
+        ).fetchall()
+        return {r[0]: r[1] for r in rows}
+
+    def replace_chunks(self, doc_id: str, chunks: list[tuple[str, str]]) -> None:
+        self._conn.execute("DELETE FROM chunks WHERE doc_id = ?", (doc_id,))
+        self._conn.executemany(
+            "INSERT INTO chunks (chunk_id, doc_id, content_hash) VALUES (?, ?, ?)",
+            [(chunk_id, doc_id, digest) for chunk_id, digest in chunks],
+        )
         self._conn.commit()
 
     def all_ids(self) -> set[str]:
