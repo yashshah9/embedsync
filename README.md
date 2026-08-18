@@ -2,19 +2,19 @@
 
 Incremental synchronization between **source documents** and **vector indexes** — detect changes, re-embed only deltas, and delete stale chunks.
 
-> **Status:** v0.1 foundation — local markdown source, SQLite state, in-memory destination; pgvector/Qdrant and embedding integration are next.
+> **Status:** v0.2 — hash embeddings, paragraph chunks, JSONL destination. Real pgvector is next.
 
 ## Problem
 
 RAG indexes rot when documents change. Full re-embeds are expensive and miss deletes. Every team rebuilds change detection from scratch.
 
-## Key features (v0.1)
+## Key features (v0.2)
 
 - Content-hash change detection per document
 - Sync plan: add / update / delete actions
-- SQLite state store (no extra infrastructure)
-- Local markdown file source
-- `--dry-run` mode
+- Hash embedder for offline/CI (`--embedder hash`)
+- JSONL or in-memory destination
+- Unchanged docs skip re-embedding on the next run
 
 ## Architecture
 
@@ -39,7 +39,8 @@ pip install -e ".[dev]"
 embedsync health
 embedsync plan examples/docs
 embedsync run examples/docs --dry-run
-embedsync run examples/docs
+embedsync run examples/docs --embedder hash --destination memory
+embedsync run examples/docs --embedder hash --destination jsonl:/tmp/index.jsonl
 ```
 
 ## Docker
@@ -58,8 +59,9 @@ docker compose run --rm plan
 
 ## Roadmap
 
+- [x] Pluggable embedder protocol + hash backend
+- [x] JSONL destination (local stand-in)
 - [ ] pgvector and Qdrant destinations
-- [ ] Pluggable embedding function
 - [ ] Chunk-level stable IDs across edits
 - [ ] Notion and sitemap sources
 
@@ -67,9 +69,8 @@ docker compose run --rm plan
 
 MIT
 
-## Known limitations (v0.1)
+## Known limitations (v0.2)
 
+- Hash embeddings are not semantic — OpenAI/Ollama come later
+- JSONL is not a vector DB
 - Local markdown files only
-- In-memory destination (no real vector DB yet)
-- Naive fixed-size chunk count heuristic
-- No embedding API calls

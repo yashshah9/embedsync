@@ -22,6 +22,9 @@ def test_run_indexes_documents(tmp_path: Path) -> None:
     store = StateStore(str(tmp_path / "state.db"))
     source = LocalFileSource(DOCS)
     dest = MemoryDestination()
-    execute_sync(source, store, dest)
+    first = execute_sync(source, store, dest)
     assert len(dest.indexed) == 2
+    assert first.embeddings_written > 0
+    second = execute_sync(source, store, dest)
+    assert second.embeddings_written == 0
     store.close()
