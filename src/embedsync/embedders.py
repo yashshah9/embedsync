@@ -33,4 +33,4 @@ class HashEmbedder:
 def resolve_embedder(name: str) -> Embedder:
     if name in {"hash", "test"}:
         return HashEmbedder()
-    raise ValueError(f"Unknown embedder '{name}'. v0.2 ships hash; openai/nomic come next.")
+    raise ValueError(f"Unknown embedder '{name}'. v0.3 ships hash; openai/nomic come next.")

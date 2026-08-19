@@ -37,9 +37,9 @@ pip install -e ".[dev]"
 
 ```bash
 embedsync health
-embedsync plan examples/docs
-embedsync run examples/docs --dry-run
-embedsync run examples/docs --embedder hash --destination memory
+embedsync plan examples/docs --state-db /tmp/embedsync-demo.db
+embedsync run examples/docs --dry-run --state-db /tmp/embedsync-demo.db
+embedsync run examples/docs --embedder hash --destination memory --state-db /tmp/embedsync-demo.db
 embedsync run examples/docs --embedder hash --destination jsonl:/tmp/index.jsonl
 ```
 
@@ -61,16 +61,17 @@ docker compose run --rm plan
 
 - [x] Pluggable embedder protocol + hash backend
 - [x] JSONL destination (local stand-in)
+- [x] Chunk-level stable IDs across edits
 - [ ] pgvector and Qdrant destinations
-- [ ] Chunk-level stable IDs across edits
 - [ ] Notion and sitemap sources
 
 ## License
 
 MIT
 
-## Known limitations (v0.2)
+## Known limitations (v0.3)
 
 - Hash embeddings are not semantic — OpenAI/Ollama come later
 - JSONL is not a vector DB
 - Local markdown files only
+- Re-runs reuse `.embedsync/state.db`; pass `--state-db` for an isolated plan

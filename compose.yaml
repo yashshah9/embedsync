@@ -8,4 +8,4 @@ services:
     build: {context: ., dockerfile: docker/Dockerfile}
     volumes: [".:/app"]
     working_dir: /app
-    command: ["embedsync", "plan", "examples/docs"]
+    command: ["embedsync", "plan", "examples/docs", "--state-db", "/tmp/embedsync-demo.db"]
