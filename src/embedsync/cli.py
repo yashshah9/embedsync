@@ -40,7 +40,14 @@ def _destination(dest_spec: str) -> MemoryDestination | JsonlDestination:
         return MemoryDestination()
     if dest_spec.startswith("jsonl:"):
         return JsonlDestination(Path(dest_spec.split(":", 1)[1]))
-    raise click.UsageError("destination must be 'memory' or 'jsonl:/path'")
+    if dest_spec.startswith(("pgvector:", "postgresql://", "postgres://")):
+        from embedsync.destinations.pgvector import PgVectorDestination
+
+        dsn = dest_spec.split(":", 1)[1] if dest_spec.startswith("pgvector:") else dest_spec
+        return PgVectorDestination(dsn)  # type: ignore[return-value]
+    raise click.UsageError(
+        "destination must be 'memory', 'jsonl:/path', 'pgvector:DSN', or a postgres:// URL"
+    )
 
 
 @main.command("plan")
@@ -76,7 +83,12 @@ def plan_cmd(source_dir: Path, state_db: str | None, full_reindex: bool) -> None
 @click.option("--dry-run", is_flag=True)
 @click.option("--state-db", default=None)
 @click.option("--embedder", default="hash")
-@click.option("--destination", "dest_spec", default="memory", help="memory | jsonl:/path")
+@click.option(
+        "--destination",
+        "dest_spec",
+        default="memory",
+        help="memory | jsonl:/path | pgvector:DSN | postgres(ql)://...",
+    )
 @click.option("--full-reindex", is_flag=True, help="Force re-embed all current docs")
 def run_cmd(
     source_dir: Path,

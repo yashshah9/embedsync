@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0] - 2026-09-14
+
+### Added
+- pgvector destination (`--destination pgvector:DSN` or `postgresql://...` / `postgres://...`)
+- Optional extra: `pip install 'embedsync[pg]'` (`psycopg[binary]>=3.1`)
+
 ## [0.5.0] - 2026-09-14
 
 ### Added

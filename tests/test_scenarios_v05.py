@@ -129,7 +129,7 @@ def test_resolve_ollama_colon_model() -> None:
 
 def test_bad_destination_raises() -> None:
     with pytest.raises(click.UsageError, match="memory.*jsonl"):
-        _destination("pgvector://localhost")
+        _destination("bogus")
 
 
 def test_empty_source_dir_cli_error(tmp_path: Path) -> None:
