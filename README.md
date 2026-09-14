@@ -2,19 +2,40 @@
 
 Incremental synchronization between **source documents** and **vector indexes** — detect changes, re-embed only deltas, and delete stale chunks.
 
-> **Status:** v0.3 — hash embeddings, paragraph chunks, JSONL destination, chunk-level re-embed.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml/badge.svg)](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml)
+
+> **Status:** v0.4 — hash + Ollama embedders, paragraph chunks, JSONL destination, chunk-level re-embed.
+
+## 60-second try
+
+```bash
+docker compose run --rm plan  # plan sync for examples/docs
+docker compose run --rm test  # pytest
+```
+
+## Why this vs alternatives
+
+| Approach | Strength | Gap |
+|----------|----------|-----|
+| **embedsync** | Content-hash deltas + pluggable embedders | Destinations still local (JSONL/memory) |
+| Full re-embed pipelines | Simple mentally | Expensive; misses deletes |
+| Framework ingestion (e.g. LlamaIndex) | Rich connectors | Change detection is DIY |
+| One-off sync scripts | Fits one repo | No shared plan/state model |
 
 ## Problem
 
 RAG indexes rot when documents change. Full re-embeds are expensive and miss deletes. Every team rebuilds change detection from scratch.
 
-## Key features (v0.2)
+## Key features (v0.4)
 
 - Content-hash change detection per document
 - Sync plan: add / update / delete actions
 - Hash embedder for offline/CI (`--embedder hash`)
+- Ollama embedder (`--embedder ollama` or `ollama:nomic-embed-text`)
 - JSONL or in-memory destination
-- Unchanged docs skip re-embedding on the next run
+- Unchanged docs/chunks skip re-embedding on the next run
 
 ## Architecture
 
@@ -41,6 +62,9 @@ embedsync plan examples/docs --state-db /tmp/embedsync-demo.db
 embedsync run examples/docs --dry-run --state-db /tmp/embedsync-demo.db
 embedsync run examples/docs --embedder hash --destination memory --state-db /tmp/embedsync-demo.db
 embedsync run examples/docs --embedder hash --destination jsonl:/tmp/index.jsonl
+# Requires a running Ollama with an embedding model:
+embedsync run examples/docs --embedder ollama --destination jsonl:/tmp/index.jsonl
+embedsync run examples/docs --embedder ollama:nomic-embed-text --destination memory
 ```
 
 ## Docker
@@ -57,11 +81,14 @@ docker compose run --rm plan
 | `EMBEDSYNC_STATE_DB` | `.embedsync/state.db` | State database path |
 | `EMBEDSYNC_LOG_LEVEL` | `INFO` | Log level |
 
+Ollama uses `OLLAMA_HOST` when set (otherwise the embedder default host).
+
 ## Roadmap
 
 - [x] Pluggable embedder protocol + hash backend
 - [x] JSONL destination (local stand-in)
 - [x] Chunk-level stable IDs across edits
+- [x] Ollama embedder (`--embedder ollama`)
 - [ ] pgvector and Qdrant destinations
 - [ ] Notion and sitemap sources
 
@@ -69,9 +96,10 @@ docker compose run --rm plan
 
 MIT
 
-## Known limitations (v0.3)
+## Known limitations (v0.4)
 
-- Hash embeddings are not semantic — OpenAI/Ollama come later
+- Hash embeddings are not semantic — use `--embedder ollama` for local semantic vectors
 - JSONL is not a vector DB
 - Local markdown files only
 - Re-runs reuse `.embedsync/state.db`; pass `--state-db` for an isolated plan
+- Ollama must already be running and have the embedding model pulled

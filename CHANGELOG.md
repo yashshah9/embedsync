@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.0] - 2026-09-14
+
+### Added
+- Ollama embedder via `--embedder ollama` or `--embedder ollama:<model>` (default model `nomic-embed-text`)
+
 ## [0.3.0] - 2026-08-19
 
 ### Added
