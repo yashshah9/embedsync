@@ -1,8 +1,8 @@
 """Tests for embedders."""
 
 import json
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from embedsync.embedders import HashEmbedder, OllamaEmbedder, resolve_embedder
 
@@ -23,7 +23,7 @@ def test_resolve_ollama_model_name() -> None:
 
 def test_ollama_embedder_against_mock_server() -> None:
     class Handler(BaseHTTPRequestHandler):
-        def do_POST(self) -> None:  # noqa: N802
+        def do_POST(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
             body = json.loads(self.rfile.read(length))
             assert body["model"] == "nomic-embed-text"
@@ -34,7 +34,7 @@ def test_ollama_embedder_against_mock_server() -> None:
             self.end_headers()
             self.wfile.write(payload)
 
-        def log_message(self, format: str, *args: object) -> None:  # noqa: A003
+        def log_message(self, format: str, *args: object) -> None:
             return
 
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)

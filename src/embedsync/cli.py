@@ -46,11 +46,12 @@ def _destination(dest_spec: str) -> MemoryDestination | JsonlDestination:
 @main.command("plan")
 @click.argument("source_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--state-db", default=None, help="SQLite state database path")
-def plan_cmd(source_dir: Path, state_db: str | None) -> None:
+@click.option("--full-reindex", is_flag=True, help="Treat all current docs as updates")
+def plan_cmd(source_dir: Path, state_db: str | None, full_reindex: bool) -> None:
     store, path = _store(state_db)
     try:
         source = LocalFileSource(source_dir)
-        sync_plan = plan_sync(source, store)
+        sync_plan = plan_sync(source, store, full_reindex=full_reindex)
     except ValueError as exc:
         console.print(f"[red]Error:[/red] {exc}")
         raise SystemExit(2) from exc
@@ -76,12 +77,14 @@ def plan_cmd(source_dir: Path, state_db: str | None) -> None:
 @click.option("--state-db", default=None)
 @click.option("--embedder", default="hash")
 @click.option("--destination", "dest_spec", default="memory", help="memory | jsonl:/path")
+@click.option("--full-reindex", is_flag=True, help="Force re-embed all current docs")
 def run_cmd(
     source_dir: Path,
     dry_run: bool,
     state_db: str | None,
     embedder: str,
     dest_spec: str,
+    full_reindex: bool,
 ) -> None:
     store, path = _store(state_db)
     try:
@@ -92,6 +95,7 @@ def run_cmd(
             destination=dest,
             dry_run=dry_run,
             embedder=resolve_embedder(embedder),
+            full_reindex=full_reindex,
         )
     except (ValueError, click.UsageError) as exc:
         store.close()

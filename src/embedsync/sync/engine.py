@@ -5,7 +5,12 @@ from dataclasses import dataclass, field
 import structlog
 
 from embedsync.chunking import chunk_document
-from embedsync.destinations.memory import Destination, DestinationReport, MemoryDestination, SyncAction
+from embedsync.destinations.memory import (
+    Destination,
+    DestinationReport,
+    MemoryDestination,
+    SyncAction,
+)
 from embedsync.embedders import Embedder, HashEmbedder
 from embedsync.sources.local import LocalFileSource
 from embedsync.state.store import DocumentState, StateStore, content_hash
@@ -24,7 +29,11 @@ class SyncPlan:
         return len(self.adds) + len(self.updates) + len(self.deletes)
 
 
-def plan_sync(source: LocalFileSource, store: StateStore) -> SyncPlan:
+def plan_sync(
+    source: LocalFileSource,
+    store: StateStore,
+    full_reindex: bool = False,
+) -> SyncPlan:
     """Compute add/update/delete plan without touching the destination."""
     plan = SyncPlan()
     current_ids: set[str] = set()
@@ -43,7 +52,7 @@ def plan_sync(source: LocalFileSource, store: StateStore) -> SyncPlan:
         )
         if existing is None:
             plan.adds.append(action)
-        elif existing.content_hash != digest:
+        elif full_reindex or existing.content_hash != digest:
             action.action = "update"
             plan.updates.append(action)
 
@@ -60,19 +69,27 @@ def execute_sync(
     destination: Destination | None = None,
     dry_run: bool = False,
     embedder: Embedder | None = None,
+    full_reindex: bool = False,
 ) -> DestinationReport:
     dest: Destination = destination or MemoryDestination()
     encoder = embedder or HashEmbedder()
-    plan = plan_sync(source, store)
+    plan = plan_sync(source, store, full_reindex=full_reindex)
     report = DestinationReport()
     docs = {d.doc_id: d for d in source.list_documents()}
 
     for action in plan.adds + plan.updates:
         old = store.chunks_for(action.doc_id)
         new_hashes = {chunk.chunk_id: content_hash(chunk.content) for chunk in action.chunks}
-        changed = [chunk for chunk in action.chunks if old.get(chunk.chunk_id) != new_hashes[chunk.chunk_id]]
-        removed = [chunk_id for chunk_id in old if chunk_id not in new_hashes]
-        write_chunks = action.chunks if action.action == "add" else changed
+        if full_reindex and action.action == "update":
+            # Force DELETE old chunks + ADD fresh embeddings, ignore content-hash equality.
+            write_chunks = action.chunks
+            removed = list(old.keys())
+        else:
+            changed = [
+                chunk for chunk in action.chunks if old.get(chunk.chunk_id) != new_hashes[chunk.chunk_id]
+            ]
+            removed = [chunk_id for chunk_id in old if chunk_id not in new_hashes]
+            write_chunks = action.chunks if action.action == "add" else changed
         texts = [c.content for c in write_chunks]
         vectors = encoder.embed(texts) if texts else []
         dest_action = SyncAction(

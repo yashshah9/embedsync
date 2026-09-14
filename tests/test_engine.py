@@ -30,6 +30,19 @@ def test_run_indexes_documents(tmp_path: Path) -> None:
     store.close()
 
 
+def test_full_reindex_rewrites_unchanged_content(tmp_path: Path) -> None:
+    store = StateStore(str(tmp_path / "state.db"))
+    source = LocalFileSource(DOCS)
+    dest = MemoryDestination()
+    first = execute_sync(source, store, dest)
+    assert first.embeddings_written > 0
+    second = execute_sync(source, store, dest)
+    assert second.embeddings_written == 0
+    third = execute_sync(source, store, dest, full_reindex=True)
+    assert third.embeddings_written == first.embeddings_written
+    store.close()
+
+
 def test_update_reembeds_changed_chunks_only(tmp_path: Path) -> None:
     docs = tmp_path / "docs"
     docs.mkdir()

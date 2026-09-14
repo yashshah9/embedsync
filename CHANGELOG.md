@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] - 2026-09-14
+
+### Added
+- `--full-reindex` on `run` / `plan`: force re-embed all current docs (ignore content-hash equality); removed docs still DELETE
+
 ## [0.4.0] - 2026-09-14
 
 ### Added

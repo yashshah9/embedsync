@@ -6,7 +6,7 @@ Incremental synchronization between **source documents** and **vector indexes** 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml/badge.svg)](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml)
 
-> **Status:** v0.4 — hash + Ollama embedders, paragraph chunks, JSONL destination, chunk-level re-embed.
+> **Status:** v0.5 — hash + Ollama embedders, paragraph chunks, JSONL destination, chunk-level re-embed, `--full-reindex`.
 
 ## 60-second try
 
@@ -61,6 +61,7 @@ embedsync health
 embedsync plan examples/docs --state-db /tmp/embedsync-demo.db
 embedsync run examples/docs --dry-run --state-db /tmp/embedsync-demo.db
 embedsync run examples/docs --embedder hash --destination memory --state-db /tmp/embedsync-demo.db
+embedsync run examples/docs --full-reindex --embedder hash --destination jsonl:/tmp/index.jsonl
 embedsync run examples/docs --embedder hash --destination jsonl:/tmp/index.jsonl
 # Requires a running Ollama with an embedding model:
 embedsync run examples/docs --embedder ollama --destination jsonl:/tmp/index.jsonl
