@@ -2,6 +2,7 @@
 
 Incremental synchronization between **source documents** and **vector indexes** — detect changes, re-embed only deltas, and delete stale chunks.
 
+[![PyPI](https://img.shields.io/pypi/v/embedsync.svg)](https://pypi.org/project/embedsync/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml/badge.svg)](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml)
@@ -11,8 +12,10 @@ Incremental synchronization between **source documents** and **vector indexes** 
 ## 60-second try
 
 ```bash
-docker compose run --rm plan  # plan sync for examples/docs
-docker compose run --rm test  # pytest
+pip install embedsync
+embedsync plan examples/docs --state-db /tmp/embedsync-demo.db
+# or with Docker:
+docker compose run --rm plan
 ```
 
 ## Why this vs alternatives
@@ -28,10 +31,11 @@ docker compose run --rm test  # pytest
 
 RAG indexes rot when documents change. Full re-embeds are expensive and miss deletes. Every team rebuilds change detection from scratch.
 
-## Key features (v0.4)
+## Key features (v0.5)
 
 - Content-hash change detection per document
 - Sync plan: add / update / delete actions
+- `--full-reindex` to force re-embed of all current docs
 - Hash embedder for offline/CI (`--embedder hash`)
 - Ollama embedder (`--embedder ollama` or `ollama:nomic-embed-text`)
 - JSONL or in-memory destination
