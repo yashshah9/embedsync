@@ -6,9 +6,9 @@ Email **yash376351@gmail.com** with the repo name, a short description, and step
 
 ## Threat model (honest)
 
-embedsync reads local documents, stores sync state in SQLite, and may call a local Ollama (or other configured) embedder.
+embedsync reads local documents, stores sync state in SQLite, and may call a configured embedder (hash, Ollama, or OpenAI).
 
 - It is **not** a vector database security boundary.
-- Document content is sent to the embedder you select (`hash` stays local; `ollama` hits your Ollama host).
-- State DBs and JSONL destinations may contain document text and embeddings — treat them as sensitive if the source corpus is.
+- Document content is sent to the embedder you select (`hash` stays local; `ollama` hits your Ollama host; `openai` sends text to OpenAI).
+- State DBs and JSONL / vector destinations may contain document text and embeddings — treat them as sensitive if the source corpus is.
 - There is no multi-tenant isolation; run one sync workspace per trust domain.

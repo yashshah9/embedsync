@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0] - 2026-09-14
+
+### Added
+- OpenAI embedder (`--embedder openai` or `openai:text-embedding-3-small`; needs `OPENAI_API_KEY`)
+- Qdrant destination (`--destination qdrant:http://host:6333/collection` or `qdrant:URL#collection`)
+- Optional extra: `pip install 'embedsync[qdrant]'` (`qdrant-client>=1.9`)
+
 ## [0.6.0] - 2026-09-14
 
 ### Added

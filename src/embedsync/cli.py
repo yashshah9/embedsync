@@ -45,8 +45,14 @@ def _destination(dest_spec: str) -> MemoryDestination | JsonlDestination:
 
         dsn = dest_spec.split(":", 1)[1] if dest_spec.startswith("pgvector:") else dest_spec
         return PgVectorDestination(dsn)  # type: ignore[return-value]
+    if dest_spec.startswith("qdrant:"):
+        from embedsync.destinations.qdrant import QdrantDestination, parse_qdrant_spec
+
+        url, collection = parse_qdrant_spec(dest_spec)
+        return QdrantDestination(url, collection)  # type: ignore[return-value]
     raise click.UsageError(
-        "destination must be 'memory', 'jsonl:/path', 'pgvector:DSN', or a postgres:// URL"
+        "destination must be 'memory', 'jsonl:/path', 'pgvector:DSN', "
+        "postgres(ql)://..., or 'qdrant:URL/collection' / 'qdrant:URL#collection'"
     )
 
 
@@ -87,7 +93,7 @@ def plan_cmd(source_dir: Path, state_db: str | None, full_reindex: bool) -> None
         "--destination",
         "dest_spec",
         default="memory",
-        help="memory | jsonl:/path | pgvector:DSN | postgres(ql)://...",
+        help="memory | jsonl:/path | pgvector:DSN | postgres(ql)://... | qdrant:URL/collection",
     )
 @click.option("--full-reindex", is_flag=True, help="Force re-embed all current docs")
 def run_cmd(

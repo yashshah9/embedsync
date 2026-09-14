@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "embedsync"
-version = "0.6.0"
+version = "0.7.0"
 description = "Incremental synchronization between source documents and vector indexes"
 readme = "README.md"
 license = "MIT"
@@ -27,6 +27,7 @@ Issues = "https://github.com/yashshah9/embedsync/issues"
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.9"]
 pg = ["psycopg[binary]>=3.1"]
+qdrant = ["qdrant-client>=1.9"]
 
 [project.scripts]
 embedsync = "embedsync.cli:main"
