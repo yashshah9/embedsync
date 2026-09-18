@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.1] - 2026-09-19
+
+- Skip deletes on incomplete Notion/sitemap lists; single list snapshot
+
+
 ## [0.9.0] - 2026-09-18
 
 ### Added

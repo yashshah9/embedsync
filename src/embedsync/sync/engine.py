@@ -13,6 +13,7 @@ from embedsync.destinations.memory import (
 )
 from embedsync.embedders import Embedder, HashEmbedder
 from embedsync.sources.base import Source
+from embedsync.sources.local import SourceDocument
 from embedsync.state.store import DocumentState, StateStore, content_hash
 
 log = structlog.get_logger()
@@ -29,18 +30,27 @@ class SyncPlan:
         return len(self.adds) + len(self.updates) + len(self.deletes)
 
 
+def _source_incomplete(source: Source) -> bool:
+    return bool(getattr(source, "last_list_incomplete", False))
+
+
 def plan_sync(
     source: Source,
     store: StateStore,
     full_reindex: bool = False,
+    docs: dict[str, SourceDocument] | None = None,
 ) -> SyncPlan:
-    """Compute add/update/delete plan without touching the destination."""
+    """Compute add/update/delete plan without touching the destination.
+
+    Pass ``docs`` to reuse a single ``list_documents()`` snapshot (required by
+    ``execute_sync`` so plan and apply stay consistent).
+    """
     plan = SyncPlan()
-    current_ids: set[str] = set()
-    docs = {doc.doc_id: doc for doc in source.list_documents()}
+    if docs is None:
+        docs = {doc.doc_id: doc for doc in source.list_documents()}
+    current_ids: set[str] = set(docs)
 
     for doc_id, doc in docs.items():
-        current_ids.add(doc_id)
         digest = content_hash(doc.content)
         existing = store.get(doc_id)
         chunks = chunk_document(doc_id, doc.content)
@@ -56,8 +66,16 @@ def plan_sync(
             action.action = "update"
             plan.updates.append(action)
 
-    for stale_id in store.all_ids() - current_ids:
-        plan.deletes.append(SyncAction("delete", stale_id))
+    # ponytail: skip deletes when the source reported partial fetch failures
+    # (Notion rate limits / sitemap page errors) so we do not wipe good vectors.
+    if _source_incomplete(source):
+        log.warning(
+            "sync_skips_deletes_incomplete_source",
+            stale_candidates=len(store.all_ids() - current_ids),
+        )
+    else:
+        for stale_id in store.all_ids() - current_ids:
+            plan.deletes.append(SyncAction("delete", stale_id))
 
     log.info("sync_planned", adds=len(plan.adds), updates=len(plan.updates), deletes=len(plan.deletes))
     return plan
@@ -73,11 +91,17 @@ def execute_sync(
 ) -> DestinationReport:
     dest: Destination = destination or MemoryDestination()
     encoder = embedder or HashEmbedder()
-    plan = plan_sync(source, store, full_reindex=full_reindex)
-    report = DestinationReport()
+    # Single list_documents() snapshot — avoids KeyError when a flaky source
+    # drops a doc between plan and apply.
     docs = {d.doc_id: d for d in source.list_documents()}
+    plan = plan_sync(source, store, full_reindex=full_reindex, docs=docs)
+    report = DestinationReport()
 
     for action in plan.adds + plan.updates:
+        doc = docs.get(action.doc_id)
+        if doc is None:
+            log.warning("sync_skip_missing_doc", doc_id=action.doc_id)
+            continue
         old = store.chunks_for(action.doc_id)
         new_hashes = {chunk.chunk_id: content_hash(chunk.content) for chunk in action.chunks}
         if full_reindex and action.action == "update":
@@ -106,7 +130,7 @@ def execute_sync(
             store.upsert(
                 DocumentState(
                     doc_id=action.doc_id,
-                    content_hash=content_hash(docs[action.doc_id].content),
+                    content_hash=content_hash(doc.content),
                     chunk_count=action.chunk_count,
                 )
             )

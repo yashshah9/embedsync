@@ -93,6 +93,7 @@ class NotionSource:
         self.query = query
         self.max_pages = max_pages
         self._http = http or _default_http
+        self.last_list_incomplete = False
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -118,6 +119,7 @@ class NotionSource:
     def _search_pages(self) -> list[dict[str, Any]]:
         pages: list[dict[str, Any]] = []
         cursor: str | None = None
+        truncated = False
         while len(pages) < self.max_pages:
             body: dict[str, Any] = {
                 "page_size": min(100, self.max_pages - len(pages)),
@@ -128,16 +130,24 @@ class NotionSource:
             if cursor:
                 body["start_cursor"] = cursor
             data = self._post("/search", body)
-            for item in data.get("results") or []:
-                if item.get("object") == "page":
-                    pages.append(item)
-                    if len(pages) >= self.max_pages:
-                        break
+            batch = [i for i in (data.get("results") or []) if i.get("object") == "page"]
+            for item in batch:
+                if len(pages) >= self.max_pages:
+                    truncated = True
+                    break
+                pages.append(item)
+            if truncated:
+                break
+            if len(pages) >= self.max_pages and data.get("has_more"):
+                truncated = True
+                break
             if not data.get("has_more"):
                 break
             cursor = data.get("next_cursor")
             if not cursor:
                 break
+        if truncated:
+            self.last_list_incomplete = True
         return pages
 
     def _block_children(self, block_id: str) -> list[dict[str, Any]]:
@@ -171,6 +181,7 @@ class NotionSource:
         return "\n".join(lines)
 
     def list_documents(self) -> list[SourceDocument]:
+        self.last_list_incomplete = False
         docs: list[SourceDocument] = []
         for page in self._search_pages():
             page_id = str(page.get("id") or "")
@@ -180,7 +191,8 @@ class NotionSource:
             try:
                 body = self._blocks_to_text(page_id)
             except ValueError:
-                # ponytail: skip pages we can't read (permissions / rate limits)
+                # Skip unreadable pages, but mark incomplete so sync won't DELETE them.
+                self.last_list_incomplete = True
                 continue
             content = f"# {title}\n\n{body}".strip()
             if not body and title == "Untitled":

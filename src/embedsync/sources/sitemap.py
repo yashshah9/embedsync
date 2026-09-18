@@ -96,8 +96,10 @@ class SitemapSource:
             raise ValueError("max_pages must be >= 1")
         self.sitemap_url = sitemap_url
         self.max_pages = max_pages
+        self.last_list_incomplete = False
 
     def list_documents(self) -> list[SourceDocument]:
+        self.last_list_incomplete = False
         try:
             raw, _ = _fetch(self.sitemap_url)
         except (HTTPError, URLError, TimeoutError, OSError) as exc:
@@ -108,15 +110,21 @@ class SitemapSource:
         except ET.ParseError as exc:
             raise ValueError(f"invalid sitemap XML: {exc}") from exc
 
+        if len(locs) > self.max_pages:
+            # Cap is intentional truncation — skip deletes so older pages survive.
+            self.last_list_incomplete = True
         docs: list[SourceDocument] = []
         for url in locs[: self.max_pages]:
             try:
                 body, ctype = _fetch(url)
             except (HTTPError, URLError, TimeoutError, OSError):
-                # ponytail: skip failed pages rather than failing the whole sync
+                # Skip failed pages, but mark incomplete so sync won't DELETE them.
+                self.last_list_incomplete = True
                 continue
             content = html_to_text(body, ctype)
             if not content:
+                # Empty extract may be transient; don't treat as authoritative absence.
+                self.last_list_incomplete = True
                 continue
             docs.append(
                 SourceDocument(
