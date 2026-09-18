@@ -31,7 +31,7 @@ docker compose run --rm plan
 
 RAG indexes rot when documents change. Full re-embeds are expensive and miss deletes. Every team rebuilds change detection from scratch.
 
-## Key features (v0.8)
+## Key features (v0.9)
 
 - Local markdown directory, `sitemap:URL`, or `notion:` / `notion:query` sources
 - Content-hash change detection per document
