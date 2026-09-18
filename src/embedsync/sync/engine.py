@@ -12,7 +12,7 @@ from embedsync.destinations.memory import (
     SyncAction,
 )
 from embedsync.embedders import Embedder, HashEmbedder
-from embedsync.sources.local import LocalFileSource
+from embedsync.sources.base import Source
 from embedsync.state.store import DocumentState, StateStore, content_hash
 
 log = structlog.get_logger()
@@ -30,7 +30,7 @@ class SyncPlan:
 
 
 def plan_sync(
-    source: LocalFileSource,
+    source: Source,
     store: StateStore,
     full_reindex: bool = False,
 ) -> SyncPlan:
@@ -64,7 +64,7 @@ def plan_sync(
 
 
 def execute_sync(
-    source: LocalFileSource,
+    source: Source,
     store: StateStore,
     destination: Destination | None = None,
     dry_run: bool = False,

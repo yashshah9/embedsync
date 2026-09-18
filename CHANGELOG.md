@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0] - 2026-09-18
+
+### Added
+- Sitemap source: `embedsync plan 'sitemap:https://example.com/sitemap.xml'` (stdlib fetch + HTML→text)
+- `--max-pages` for sitemap crawls (default 50)
+- `Source` protocol; sync engine accepts any `list_documents()` provider
+
 ## [0.7.0] - 2026-09-14
 
 ### Added

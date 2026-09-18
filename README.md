@@ -7,7 +7,7 @@ Incremental synchronization between **source documents** and **vector indexes** 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml/badge.svg)](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml)
 
-> **Status:** v0.7 — hash + Ollama + OpenAI embedders, paragraph chunks, JSONL + pgvector + Qdrant destinations, chunk-level re-embed, `--full-reindex`.
+> **Status:** v0.8 — local + **sitemap** sources, hash/Ollama/OpenAI embedders, JSONL + pgvector + Qdrant, chunk-level re-embed, `--full-reindex`.
 
 ## 60-second try
 
@@ -31,22 +31,22 @@ docker compose run --rm plan
 
 RAG indexes rot when documents change. Full re-embeds are expensive and miss deletes. Every team rebuilds change detection from scratch.
 
-## Key features (v0.7)
+## Key features (v0.8)
 
+- Local markdown directory **or** `sitemap:URL` source
 - Content-hash change detection per document
 - Sync plan: add / update / delete actions
 - `--full-reindex` to force re-embed of all current docs
-- Hash embedder for offline/CI (`--embedder hash`)
-- Ollama embedder (`--embedder ollama` or `ollama:nomic-embed-text`)
-- OpenAI embedder (`--embedder openai` or `openai:text-embedding-3-small`)
-- JSONL, in-memory, pgvector, or Qdrant destination
+- Hash / Ollama / OpenAI embedders
+- JSONL, memory, pgvector, or Qdrant destination
 - Unchanged docs/chunks skip re-embedding on the next run
 
 ## Architecture
 
 ```
 embedsync run ./docs
-    ├── LocalFileSource
+embedsync run 'sitemap:https://example.com/sitemap.xml'
+    ├── LocalFileSource | SitemapSource
     ├── StateStore (SQLite)
     ├── plan_sync() → diff
     └── Destination (Memory / JSONL / pgvector / Qdrant)
@@ -81,6 +81,9 @@ embedsync run examples/docs --embedder ollama:nomic-embed-text --destination mem
 # Requires OPENAI_API_KEY:
 embedsync run examples/docs --embedder openai --destination jsonl:/tmp/index.jsonl
 embedsync run examples/docs --embedder openai:text-embedding-3-small --destination memory
+# Sitemap (urlset only; --max-pages caps crawl):
+embedsync plan 'sitemap:https://example.com/sitemap.xml' --max-pages 20
+embedsync run 'sitemap:https://example.com/sitemap.xml' --embedder hash --destination memory
 ```
 
 ## Docker
@@ -109,17 +112,18 @@ docker compose run --rm plan
 - [x] OpenAI embedder (`--embedder openai`)
 - [x] pgvector destination
 - [x] Qdrant destination
-- [ ] Notion and sitemap sources
+- [x] Sitemap source (`sitemap:URL`)
+- [ ] Notion source
 
 ## License
 
 MIT
 
-## Known limitations (v0.7)
+## Known limitations (v0.8)
 
 - Hash embeddings are not semantic — use `--embedder ollama` or `--embedder openai` for semantic vectors
 - JSONL is not a vector DB; use `--destination pgvector:...` or `qdrant:...` for real stores
-- Local markdown files only
+- Sitemap: urlset only (no sitemap-index recursion); failed page fetches are skipped
 - Re-runs reuse `.embedsync/state.db`; pass `--state-db` for an isolated plan
 - Ollama must already be running and have the embedding model pulled
 - OpenAI needs `OPENAI_API_KEY`
