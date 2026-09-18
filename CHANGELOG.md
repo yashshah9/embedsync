@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.0] - 2026-09-18
+
+### Added
+- Notion source: `embedsync plan 'notion:'` or `notion:search query` (needs `NOTION_API_KEY`)
+- Stdlib Notion Search + block-children → plain text (no SDK)
+
 ## [0.8.0] - 2026-09-18
 
 ### Added

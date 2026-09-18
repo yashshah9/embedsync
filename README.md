@@ -7,7 +7,7 @@ Incremental synchronization between **source documents** and **vector indexes** 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml/badge.svg)](https://github.com/yashshah9/embedsync/actions/workflows/ci.yml)
 
-> **Status:** v0.8 — local + **sitemap** sources, hash/Ollama/OpenAI embedders, JSONL + pgvector + Qdrant, chunk-level re-embed, `--full-reindex`.
+> **Status:** v0.9 — local + sitemap + **Notion** sources, hash/Ollama/OpenAI embedders, JSONL + pgvector + Qdrant.
 
 ## 60-second try
 
@@ -33,7 +33,7 @@ RAG indexes rot when documents change. Full re-embeds are expensive and miss del
 
 ## Key features (v0.8)
 
-- Local markdown directory **or** `sitemap:URL` source
+- Local markdown directory, `sitemap:URL`, or `notion:` / `notion:query` sources
 - Content-hash change detection per document
 - Sync plan: add / update / delete actions
 - `--full-reindex` to force re-embed of all current docs
@@ -46,7 +46,8 @@ RAG indexes rot when documents change. Full re-embeds are expensive and miss del
 ```
 embedsync run ./docs
 embedsync run 'sitemap:https://example.com/sitemap.xml'
-    ├── LocalFileSource | SitemapSource
+embedsync run 'notion:'   # or notion:handbook
+    ├── LocalFileSource | SitemapSource | NotionSource
     ├── StateStore (SQLite)
     ├── plan_sync() → diff
     └── Destination (Memory / JSONL / pgvector / Qdrant)
@@ -84,6 +85,10 @@ embedsync run examples/docs --embedder openai:text-embedding-3-small --destinati
 # Sitemap (urlset only; --max-pages caps crawl):
 embedsync plan 'sitemap:https://example.com/sitemap.xml' --max-pages 20
 embedsync run 'sitemap:https://example.com/sitemap.xml' --embedder hash --destination memory
+# Notion (integration token; share pages with the integration):
+export NOTION_API_KEY=secret_...
+embedsync plan 'notion:' --max-pages 20
+embedsync run 'notion:handbook' --embedder hash --destination memory
 ```
 
 ## Docker
@@ -99,6 +104,7 @@ docker compose run --rm plan
 |----------|---------|-------------|
 | `EMBEDSYNC_STATE_DB` | `.embedsync/state.db` | State database path |
 | `EMBEDSYNC_LOG_LEVEL` | `INFO` | Log level |
+| `NOTION_API_KEY` | — | Required for `notion:` sources |
 | `OPENAI_API_KEY` | — | Required for `--embedder openai` |
 | `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama base URL |
 | `QDRANT_API_KEY` | — | Optional API key for Qdrant Cloud |
@@ -113,17 +119,18 @@ docker compose run --rm plan
 - [x] pgvector destination
 - [x] Qdrant destination
 - [x] Sitemap source (`sitemap:URL`)
-- [ ] Notion source
+- [x] Notion source (`notion:` / `notion:query`)
 
 ## License
 
 MIT
 
-## Known limitations (v0.8)
+## Known limitations (v0.9)
 
 - Hash embeddings are not semantic — use `--embedder ollama` or `--embedder openai` for semantic vectors
 - JSONL is not a vector DB; use `--destination pgvector:...` or `qdrant:...` for real stores
 - Sitemap: urlset only (no sitemap-index recursion); failed page fetches are skipped
+- Notion: Search API pages only (no database queries); shallow block recursion; needs pages shared with the integration
 - Re-runs reuse `.embedsync/state.db`; pass `--state-db` for an isolated plan
 - Ollama must already be running and have the embedding model pulled
 - OpenAI needs `OPENAI_API_KEY`

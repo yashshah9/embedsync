@@ -62,10 +62,15 @@ def _source(spec: str, *, max_pages: int) -> Source:
         from embedsync.sources.sitemap import SitemapSource, parse_sitemap_spec
 
         return SitemapSource(parse_sitemap_spec(spec), max_pages=max_pages)
+    if spec.startswith("notion:"):
+        from embedsync.sources.notion import NotionSource, parse_notion_spec
+
+        return NotionSource(query=parse_notion_spec(spec), max_pages=max_pages)
     path = Path(spec)
     if not path.is_dir():
         raise click.UsageError(
-            "source must be an existing directory or 'sitemap:https://.../sitemap.xml'"
+            "source must be an existing directory, "
+            "'sitemap:https://.../sitemap.xml', or 'notion:' / 'notion:query'"
         )
     return LocalFileSource(path)
 
@@ -74,7 +79,7 @@ def _source(spec: str, *, max_pages: int) -> Source:
 @click.argument("source")
 @click.option("--state-db", default=None, help="SQLite state database path")
 @click.option("--full-reindex", is_flag=True, help="Treat all current docs as updates")
-@click.option("--max-pages", default=50, show_default=True, help="Sitemap: max URLs to fetch")
+@click.option("--max-pages", default=50, show_default=True, help="Sitemap/Notion: max pages to fetch")
 def plan_cmd(source: str, state_db: str | None, full_reindex: bool, max_pages: int) -> None:
     store, path = _store(state_db)
     try:
@@ -113,7 +118,7 @@ def plan_cmd(source: str, state_db: str | None, full_reindex: bool, max_pages: i
     help="memory | jsonl:/path | pgvector:DSN | postgres(ql)://... | qdrant:URL/collection",
 )
 @click.option("--full-reindex", is_flag=True, help="Force re-embed all current docs")
-@click.option("--max-pages", default=50, show_default=True, help="Sitemap: max URLs to fetch")
+@click.option("--max-pages", default=50, show_default=True, help="Sitemap/Notion: max pages to fetch")
 def run_cmd(
     source: str,
     dry_run: bool,
